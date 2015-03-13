@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # encoding: utf-8
 import httplib
-from urlparse import urljoin, urlparse
+from urlparse import urljoin, urlparse, urlsplit
 import urllib2
 import re
 from time import sleep
@@ -48,7 +48,7 @@ class DomainScraper():
         
         self.root_url = url
         self.extract_domain_info(url)
-
+        self.visited_links[url] = 1
         self.find_links(url, sleep_time)
 
         return self.domain_links
@@ -154,10 +154,6 @@ class DomainScraper():
         # Ensure the URL has the correct format
         if url[:4] == "www.":
             url = self.append_http(url)
-
-        # Check to see if the URL has already been visited
-        if self.visited_links.has_key(url):
-            return
         
         # Add the url to the array of links 
         self.domain_links.append(url)
@@ -174,7 +170,7 @@ class DomainScraper():
             link = self.correct_link_syntax(link)
             if not self.visited_links.has_key(link): # Only add a link to the stack if it has not been visited before
                 # Now that the link has been visited, add it to the HashMap
-                self.visited_links[url] = 1
+                self.visited_links[link] = 1
                 try:   
                     self.find_links(link, sleep_time)
                 except urllib2.HTTPError as error: # All Http errors are discarded
