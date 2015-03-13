@@ -6,12 +6,12 @@ import urllib2
 import re
 from time import sleep
 from edit_distance import levenshtein
-from bs4 import BeautifulSoup
-
+from scraper import Scraper
+from random import randrange
 
 class DomainScraper():
     
-    def __init__(self, headers=None):
+    def __init__(self):
         """
         Initialize all the class variables used in the class
         All the variables are Initialized here for convenience and readability
@@ -22,15 +22,14 @@ class DomainScraper():
         self.root_url = ""          # Root URL for the crawled website
         self.domain = ""            # The domain of the website.. Used to find relevant subdomains
         self.is_https = False       
-
+        self.scrape_subdirs = False
         # The header is just to ensure the website thinks it is a browser visiting it
-        if headers is None:
-            self.headers = {'User-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/38.0.2125.111 Safari/537.36'}
-        else:
-            self.headers = headers
+        self.headers = {'User-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/38.0.2125.111 Safari/537.36'}
+       
+      
 
 
-    def start_search(self, url, sleep_time=1):
+    def start_search(self, url, sleep_time=2, scrape_subdirs=False):
         """
         Start the search through the entire domain given as a parameter
         """
@@ -50,7 +49,7 @@ class DomainScraper():
         self.extract_domain_info(url)
         self.visited_links[url] = 1
         self.find_links(url, sleep_time)
-
+        self.scrape_subdirs = scrape_subdirs
         return self.domain_links
 
     def get_server_status_code(self, url):
@@ -67,7 +66,8 @@ class DomainScraper():
             return conn.getresponse().status
         except StandardError:
             return None
-
+        except httplib.BadStatusLine:
+            return None
 
     def check_url_existance(self, url):
         """
@@ -88,9 +88,11 @@ class DomainScraper():
         """
         if  self.root_url in url[:len(self.root_url)]:
             return True
-        else:
+        elif self.scrape_subdirs:
             return self.check_if_subdomain(url)
-    
+        else:
+            return False
+
     # TODO This method is not exactly pretty and could be improved.
     def check_if_subdomain(self, url):
         """
@@ -160,23 +162,28 @@ class DomainScraper():
         print "new URL: %s" % url
 
         # Sleeps just to be nice to the owner
-        sleep(sleep_time)
-
-        req = urllib2.Request(url, headers=self.headers)
-        soup = BeautifulSoup(urllib2.urlopen(req).read())
+        sleep(randrange(1,sleep_time))
+        
+        scraper = Scraper(self.headers)
+        soup = scraper.scrape(url)
+        # make sure that the scraper actually got a result
+        if soup is None:
+            return
 
         for a in soup.findAll('a'):
-            link = a['href']
-            link = self.correct_link_syntax(link)
-            if not self.visited_links.has_key(link): # Only add a link to the stack if it has not been visited before
-                # Now that the link has been visited, add it to the HashMap
-                self.visited_links[link] = 1
-                try:   
-                    self.find_links(link, sleep_time)
-                except urllib2.HTTPError as error: # All Http errors are discarded
-                    print "Link: %s encountered an error %s" % (link, error)
-                except KeyError as error:  # Sometimes the link has no "href"
-                    print "Link: %s encountered an error %s" % (link, error)
+            try: 
+                link = a['href']
+                if link is not None:
+                    link = self.correct_link_syntax(link)
+                    if not self.visited_links.has_key(link): # Only add a link to the stack if it has not been visited before
+                        # Now that the link has been visited, add it to the HashMap
+                        self.visited_links[link] = 1
+                        try:   
+                            self.find_links(link, sleep_time)
+                        except urllib2.HTTPError as error: # All Http errors are discarded
+                            print "Link: %s encountered an error %s" % (link, error)
+            except KeyError as error:
+                continue
 
 
     def correct_link_syntax(self, link):
