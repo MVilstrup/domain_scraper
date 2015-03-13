@@ -146,7 +146,7 @@ class DomainScraper():
         The function finds all links on a given page, and calls itself on each of them
         It sleeps a certain amount of time before requesting the page to be nice to the owner
         """
-
+        
         # If the URL is not within the proper domain, or invalid it returns 
         if not self.check_domain_boundry(url) or not self.check_url_existance(url): 
             return
@@ -159,8 +159,7 @@ class DomainScraper():
         if self.visited_links.has_key(url):
             return
         
-        # Add the url to the Hashmap and the array of links
-        self.visited_links[url] = 1
+        # Add the url to the array of links 
         self.domain_links.append(url)
         print "new URL: %s" % url
 
@@ -173,12 +172,15 @@ class DomainScraper():
         for a in soup.findAll('a'):
             link = a['href']
             link = self.correct_link_syntax(link)
-            try:   
-                self.find_links(link, sleep_time)
-            except urllib2.HTTPError as error: # All Http errors are discarded
-                print "Link: %s encountered an error %s" % (link, error)
-            except KeyError as error:  # Sometimes the link has no "href"
-                print "Link: %s encountered an error %s" % (link, error)
+            if not self.visited_links.has_key(link): # Only add a link to the stack if it has not been visited before
+                # Now that the link has been visited, add it to the HashMap
+                self.visited_links[url] = 1
+                try:   
+                    self.find_links(link, sleep_time)
+                except urllib2.HTTPError as error: # All Http errors are discarded
+                    print "Link: %s encountered an error %s" % (link, error)
+                except KeyError as error:  # Sometimes the link has no "href"
+                    print "Link: %s encountered an error %s" % (link, error)
 
 
     def correct_link_syntax(self, link):
