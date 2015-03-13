@@ -16,6 +16,7 @@ class DomainScraper():
         Initialize all the class variables used in the class
         All the variables are Initialized here for convenience and readability
         """
+        self.visited_links = {}     # Pythons Dictionary is already a HashMap
         self.domain_links = []      # All links found in domain and subdomains
         self.external_links = []    # For now external links are discarded, but these should be taken into account as well
         self.root_url = ""          # Root URL for the crawled website
@@ -155,9 +156,11 @@ class DomainScraper():
             url = self.append_http(url)
 
         # Check to see if the URL has already been visited
-        if url in self.domain_links:
+        if self.visited_links.has_key(url):
             return
-         
+        
+        # Add the url to the Hashmap and the array of links
+        self.visited_links[url] = 1
         self.domain_links.append(url)
         print "new URL: %s" % url
 
