@@ -5,9 +5,8 @@ from urlparse import urljoin, urlparse, urlsplit
 import urllib2
 import re
 from time import sleep
-from scraper import Scraper
 from random import randrange
-from video_search import VideoSearch
+from page import Page
 
 class DomainScraper(object):
     
@@ -163,63 +162,25 @@ class DomainScraper(object):
 
         # Sleeps just to be nice to the owner
         sleep(randrange(1,sleep_time))
-        
-        scraper = Scraper(self.headers)
-        soup = scraper.scrape(url)
-        # make sure that the scraper actually got a result
-        if soup is None:
+
+        try:
+            page = Page(url, self.headers, self.root_url)
+        except ValueError as page_not_found:
+            # If ValueError is raised, not page could be scraped from the URL
             return
         
-        videos = VideoSearch(soup)
-        if videos.search_page():
-            self.video_links[url] = 1
+        if page.get_videos():
             print "Found video on page: %s" % url
 
-        for a in soup.findAll('a'):
-            try: 
-                link = a['href']
-                if link is not None:
-                    link = self.correct_link_syntax(link)
-                    if not self.visited_links.has_key(link): # Only add a link to the stack if it has not been visited before
-                        # Now that the link has been visited, add it to the HashMap
-                        self.visited_links[link] = 1
-                        try:   
-                            self.find_links(link, sleep_time)
-                        except urllib2.HTTPError as error: # All Http errors are discarded
-                            print "Link: %s encountered an error %s" % (link, error)
-            except KeyError as error:
-                continue
-
-
-    def correct_link_syntax(self, link):
-        """
-        Simple method used to alter links into fully functional URLs
-        """
-        
-        # If the link is just one character long it is a reference to the root
-        if len(link) <= 1:
-            return self.root_url
-        
-        # If the URL contains the text "return_url=" it can reach a non terminating loop
-        if "return_url=" in link:
-            return self.root_url
-        
-        # If the url contains a hashtag it is a reference to a part of the page, 
-        # so the page is returned instead of the reference
-        if "#" in link:
-            base_link = urlsplit(link)
-            return base_link.geturl()
-
-        # If the link ends with pdf or zip, the crawler should not attempt to dowload it, 
-        # since this can take an extremely long time 
-        if link.endswith("pdf") or link.endswith("zip"):
-            return self.root_url 
-        
-        # If none of the above applies, we use the urljoin to create a proper url
-        # If the link is actaully another domain, this domain is returned
-        # otherwise the link is joined to the base to create a fully functional URL 
-        return urljoin(self.root_url, link)
-
+        for link in page.get_links():
+            if not self.visited_links.has_key(link):
+                # Only add a link to the stack if it has not been visited before
+                # Now that the link has been visited, add it to the HashMap
+                self.visited_links[link] = 1
+                try:   
+                     self.find_links(link, sleep_time)
+                except urllib2.HTTPError as error: # All Http errors are discarded
+                     print "Link: %s encountered an error %s" % (link, error)
 
     def link_is_valid_url(self, url):
         """
@@ -233,5 +194,3 @@ class DomainScraper(object):
             r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})' # ...or ip
             r'(?::\d+)?'  # optional port
             r'(?:/?|[/?]\S+)$', re.IGNORECASE)
-        return url is not None and regex.search(url)
-
