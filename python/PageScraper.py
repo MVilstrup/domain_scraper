@@ -5,11 +5,11 @@ from urlparse import urljoin, urlparse, urlsplit
 import urllib2
 import re
 from time import sleep
-from edit_distance import levenshtein
 from scraper import Scraper
 from random import randrange
+from video_search import VideoSearch
 
-class DomainScraper():
+class DomainScraper(object):
     
     def __init__(self):
         """
@@ -19,6 +19,7 @@ class DomainScraper():
         self.visited_links = {}     # Pythons Dictionary is already a HashMap
         self.domain_links = []      # All links found in domain and subdomains
         self.external_links = []    # For now external links are discarded, but these should be taken into account as well
+        self.video_links = {}
         self.root_url = ""          # Root URL for the crawled website
         self.domain = ""            # The domain of the website.. Used to find relevant subdomains
         self.is_https = False       
@@ -159,7 +160,6 @@ class DomainScraper():
         
         # Add the url to the array of links 
         self.domain_links.append(url)
-        print "new URL: %s" % url
 
         # Sleeps just to be nice to the owner
         sleep(randrange(1,sleep_time))
@@ -169,6 +169,11 @@ class DomainScraper():
         # make sure that the scraper actually got a result
         if soup is None:
             return
+        
+        videos = VideoSearch(soup)
+        if videos.search_page():
+            self.video_links[url] = 1
+            print "Found video on page: %s" % url
 
         for a in soup.findAll('a'):
             try: 
