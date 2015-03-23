@@ -10,7 +10,7 @@ from page import Page
 
 class DomainScraper(object):
     
-    def __init__(self):
+    def __init__(self, scrape_subdirs=True):
         """
         Initialize all the class variables used in the class
         All the variables are Initialized here for convenience and readability
@@ -22,14 +22,14 @@ class DomainScraper(object):
         self.root_url = ""          # Root URL for the crawled website
         self.domain = ""            # The domain of the website.. Used to find relevant subdomains
         self.is_https = False       
-        self.scrape_subdirs = False
+        self.scrape_subdirs = scrape_subdirs
         # The header is just to ensure the website thinks it is a browser visiting it
         self.headers = {'User-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/38.0.2125.111 Safari/537.36'}
        
       
 
 
-    def start_search(self, url, sleep_time=2, scrape_subdirs=False):
+    def start_search(self, url, sleep_time=2):
         """
         Start the search through the entire domain given as a parameter
         """
@@ -49,7 +49,7 @@ class DomainScraper(object):
         self.extract_domain_info(url)
         self.visited_links[url] = 1
         self.find_links(url, sleep_time)
-        self.scrape_subdirs = scrape_subdirs
+
         return self.domain_links
 
     def get_server_status_code(self, url):
@@ -86,7 +86,7 @@ class DomainScraper(object):
         :param url:
         :return: Boolean stating wether or not the url is within the root domain
         """
-        if  self.root_url in url[:len(self.root_url)]:
+        if self.root_url in url[:len(self.root_url)]:
             return True
         elif self.scrape_subdirs:
             return self.check_if_subdomain(url)
@@ -171,6 +171,8 @@ class DomainScraper(object):
         
         if page.get_videos():
             print "Found video on page: %s" % url
+        else:
+            print "Page %s had no urls" % url   
 
         for link in page.get_links():
             if not self.visited_links.has_key(link):
