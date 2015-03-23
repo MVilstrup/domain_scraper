@@ -3,6 +3,7 @@
 import re
 from bs4 import BeautifulSoup
 from scraper import Scraper
+from link_controller import LinkController
 from urlparse import urljoin, urlparse, urlsplit
 
 class Page(object):
@@ -39,6 +40,7 @@ class Page(object):
         self.url = url
         self.headers = headers
         self.root_url = root_url
+        self.link_controller = LinkController(root_url)
         self.depth = depth
         self.videos = {}
         self.references = 1
@@ -77,8 +79,21 @@ class Page(object):
         # TODO Make sure that iframes are searched better since they might
         # contain something else than videos
 
+        number_of_iframes = 0
         # Count the number of iframes
-        number_of_iframes = len(self.soup.findAll("iframe"))
+        for iframe in self.soup.findAll("iframe"):
+            framed_video = ""
+            try:
+                framed_video = iframe["src"]
+            except KeyError:
+                # The frame might not have a source
+                continue
+            
+            framed_video = self._correct_link_syntax(framed_video)
+            if framed_video is not None and self._link_is_valid_url(framed_video):
+                if self.link_controller.check_domain_boundry(framed_video):
+                    number_of_iframes += 1
+
         if number_of_iframes > 0:
             self.videos["iframe"] = number_of_iframes
 
