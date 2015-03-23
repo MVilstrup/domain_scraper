@@ -16,7 +16,7 @@ class DomainScraper(object):
         All the variables are Initialized here for convenience and readability
         """
         self.visited_links = {}     # Pythons Dictionary is already a HashMap
-        self.domain_links = []      # All links found in domain and subdomains
+        self.domain_links = {}      # All links found in domain and subdomains
         self.external_links = []    # For now external links are discarded, but these should be taken into account as well
         self.video_links = {}
         self.root_url = ""          # Root URL for the crawled website
@@ -48,7 +48,7 @@ class DomainScraper(object):
         self.root_url = url
         self.extract_domain_info(url)
         self.visited_links[url] = 1
-        self.find_links(url, sleep_time)
+        self.find_links(url, sleep_time, depth=0)
 
         return self.domain_links
 
@@ -142,7 +142,7 @@ class DomainScraper(object):
             self.domain += ".%s" % part
     
     
-    def find_links(self, url, sleep_time):
+    def find_links(self, url, sleep_time, depth):
         """
         Recursive function used to find all links within a given domain
         The function finds all links on a given page, and calls itself on each of them
@@ -158,21 +158,22 @@ class DomainScraper(object):
             url = self.append_http(url)
         
         # Add the url to the array of links 
-        self.domain_links.append(url)
+        self.domain_links[url] = 1
 
         # Sleeps just to be nice to the owner
         sleep(randrange(1,sleep_time))
 
         try:
-            page = Page(url, self.headers, self.root_url)
+            page = Page(url, self.headers, self.root_url, depth=depth)
         except ValueError as page_not_found:
             # If ValueError is raised, not page could be scraped from the URL
             return
         
-        if page.get_videos():
+        if page.contains_videos():
             print "Found video on page: %s" % url
-        else:
-            print "Page %s had no urls" % url   
+            self.video_links[url] = page
+        
+        new_depth = depth + 1
 
         for link in page.get_links():
             if not self.visited_links.has_key(link):
@@ -180,9 +181,21 @@ class DomainScraper(object):
                 # Now that the link has been visited, add it to the HashMap
                 self.visited_links[link] = 1
                 try:   
-                     self.find_links(link, sleep_time)
+                     self.find_links(link, sleep_time, new_depth)
                 except urllib2.HTTPError as error: # All Http errors are discarded
                      print "Link: %s encountered an error %s" % (link, error)
+            else:
+                # Add counter to check the amount of links to each page in the website
+                if self.domain_links.has_key(link):
+                    self.domain_links[link] += 1
+                # Check to see if the current depth is smaller than the link
+                # Of a stored video page, and update its depth to find the shortest
+                # path to a page containing a video
+                if self.video_links.has_key(link):
+                    visited_page = self.video_links[link]
+                    if new_depth < visited_page.depth:
+                        visited_page.depth = new_depth
+
 
     def link_is_valid_url(self, url):
         """

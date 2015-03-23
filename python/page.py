@@ -5,30 +5,36 @@ from bs4 import BeautifulSoup
 from scraper import Scraper
 from urlparse import urljoin, urlparse, urlsplit
 
-
 class Page(object):
 
-    def __init__(self, url, headers, root_url):
+    def __init__(self, url, headers, root_url, depth):
         self.url = url
         self.headers = headers
         self.root_url = root_url
+        self.depth = depth
+        self.videos = {}
 
         scraper = Scraper(self.headers)
         self.soup = scraper.scrape(url)
         # make sure that the scraper actually got a result
         if self.soup is None:
             raise ValueError("No page could be loaded from url: %s" % self.url)
-        
+                
         self.links = self._find_all_links()
+        self.find_videos()
 
     def get_links(self):
         return self.links
     
-    def get_videos(self):
-        return self.soup.find("iframe") != None
+    def contains_videos(self):
+        return len(self.videos) != 0
 
     def find_videos(self):
-        pass
+        # Count the number of iframes
+        number_of_iframes = len(self.soup.findAll("iframe"))
+        if number_of_iframes > 0:
+            self.videos["iframe"] = number_of_iframes
+        
 
     def _find_all_links(self):
         """
