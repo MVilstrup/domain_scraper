@@ -15,15 +15,15 @@ file_name = "%s/%s.csv" % (directory, args["output"])
 csv = open(file_name, "w")
 
 # Start the domain scraper and give it a base domain to scrape from
-scraper = DomainScraper()
-video_pages = scraper.start_search(args["url"])
+scraper = DomainScraper(args["url"])
+video_pages = scraper.start_search()
 
 urls = []
 references = []
 depths = []
 
 
-csv_text = "url, refrences, depths, iframes, videos\n"
+csv_text = "url, refrences, depths, videos\n"
 for url, page in video_pages.iteritems():
     urls.append(url)
     references.append(page.references)
@@ -33,17 +33,7 @@ for url, page in video_pages.iteritems():
     for name, videos in page.videos.iteritems():
         if name == "iframe":
             iframes += videos 
-        elif name == "video":
-            videos += videos
-    csv_text += "%s,%s,%s,%s,%s\n" % (url, page.references, page.depth, iframes, videos)
+    csv_text += "%s,%s,%s,%s,%s\n" % (url, page.references, page.depth, iframes)
 
 csv.write(csv_text)
-
-bar_chart = BarChart(bar_groups=urls)
-bar_chart.add_data(references, label="References")
-bar_chart.show()
-
-bar_chart = BarChart(bar_groups=urls)
-bar_chart.add_data(depths, label="Depths")
-bar_chart.show()
 

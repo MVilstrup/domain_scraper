@@ -81,12 +81,6 @@ class Page(object):
         number_of_iframes = len(self.soup.findAll("iframe"))
         if number_of_iframes > 0:
             self.videos["iframe"] = number_of_iframes
-        
-        # Count the number of video tags
-        number_of_video_tags = len(self.soup.findAll("video"))
-        if number_of_video_tags > 0:
-            self.videos["video"] = number_of_video_tags
-
 
     def _find_all_links(self):
         """
