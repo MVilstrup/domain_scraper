@@ -18,16 +18,13 @@ class DomainScraper(object):
         self.visited_links = {}     # Pythons Dictionary is already a HashMap
         self.domain_links = {}      # All links found in domain and subdomains
         self.external_links = []    # For now external links are discarded, but these should be taken into account as well
-        self.video_links = {}
+        self.video_links = {}       # All pages containing videos on them
         self.root_url = ""          # Root URL for the crawled website
         self.domain = ""            # The domain of the website.. Used to find relevant subdomains
         self.is_https = False       
         self.scrape_subdirs = scrape_subdirs
         # The header is just to ensure the website thinks it is a browser visiting it
         self.headers = {'User-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/38.0.2125.111 Safari/537.36'}
-       
-      
-
 
     def start_search(self, url, sleep_time=2):
         """
@@ -50,7 +47,7 @@ class DomainScraper(object):
         self.visited_links[url] = 1
         self.find_links(url, sleep_time, depth=0)
 
-        return self.domain_links
+        return self.video_links
 
     def get_server_status_code(self, url):
         """
@@ -185,27 +182,13 @@ class DomainScraper(object):
                 except urllib2.HTTPError as error: # All Http errors are discarded
                      print "Link: %s encountered an error %s" % (link, error)
             else:
-                # Add counter to check the amount of links to each page in the website
-                if self.domain_links.has_key(link):
-                    self.domain_links[link] += 1
-                # Check to see if the current depth is smaller than the link
-                # Of a stored video page, and update its depth to find the shortest
+                # Add a reference and check to see if the current depth 
+                # is smaller than the link of a stored video page, 
+                # and update its depth to find the shortest
                 # path to a page containing a video
                 if self.video_links.has_key(link):
                     visited_page = self.video_links[link]
+                    visited_page.references += 1
                     if new_depth < visited_page.depth:
                         visited_page.depth = new_depth
 
-
-    def link_is_valid_url(self, url):
-        """
-        Check if a URL is valid or not
-        This method is taken from the Django Framework
-        """
-        regex = re.compile(
-            r'^https?://'  # http:// or https://
-            r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+[A-Z]{2,6}\.?|'  # domain...
-            r'localhost|'  # localhost...
-            r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})' # ...or ip
-            r'(?::\d+)?'  # optional port
-            r'(?:/?|[/?]\S+)$', re.IGNORECASE)
