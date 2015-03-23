@@ -1,3 +1,8 @@
-BeautifulSoup4
-isodate==0.5.0
-wsgiref==0.1.2
+BeautifulSoup4==4.2.1,
+isodate==0.5.0,
+wsgiref==0.1.2,
+matplotlib==1.4.3,
+numpy
+
+
+
