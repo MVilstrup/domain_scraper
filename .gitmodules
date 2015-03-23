@@ -1,0 +1,3 @@
+[submodule "python/visualize"]
+	path = python/visualize
+	url = https://github.com/MVilstrup/visualize.git
